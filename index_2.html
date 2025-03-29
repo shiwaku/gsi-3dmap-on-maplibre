@@ -1,0 +1,166 @@
+<html>
+
+<head>
+  <title>国土地理院3次元電子国土基本図の試作データ(PMTiles)</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src='https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.js'></script>
+  <link href='https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.css' rel='stylesheet' />
+  <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
+  <style>
+    body {
+      margin: 0;
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="map"></div>
+  <script type="text/javascript">
+    // PMTilesプロトコルを初期化
+    const protocol = new pmtiles.Protocol();
+    maplibregl.addProtocol('pmtiles', protocol.tile);
+
+    // マップの初期化
+    const map = new maplibregl.Map({
+      container: "map",
+      style: "pale.json",
+      zoom: 18.04,
+      minZoom: 0,
+      maxZoom: 23,
+      pitch: 74,
+      bearing: 39.2,
+      maxPitch: 85,
+      center: [133.189446, 34.429674],
+      hash: true,
+      attributionControl: false,
+    });
+
+    // ズーム・回転
+    map.addControl(new maplibregl.NavigationControl());
+
+    // フルスクリーンモードのオンオフ
+    map.addControl(new maplibregl.FullscreenControl());
+
+    // 現在位置表示
+    map.addControl(new maplibregl.GeolocateControl({
+      positionOptions: {
+        enableHighAccuracy: false
+      },
+      fitBoundsOptions: { maxZoom: 18 },
+      trackUserLocation: true,
+      showUserLocation: true
+    }));
+
+    // スケール表示
+    map.addControl(new maplibregl.ScaleControl({
+      maxWidth: 200,
+      unit: 'metric'
+    }));
+
+    // Attributionを折りたたみ表示
+    map.addControl(new maplibregl.AttributionControl({
+      compact: true
+    }));
+
+    // 3D地形コントロール表示
+    map.addControl(
+      new maplibregl.TerrainControl({
+        source: 'aist-dem-terrain-rgb',
+        exaggeration: 1 // 標高を強調する倍率
+      })
+    );
+
+    map.on('load', () => {
+      // 産総研 シームレス標高タイルソース
+      map.addSource("aist-dem-terrain-rgb", {
+        type: 'raster-dem',
+        tiles: ["https://gbank.gsj.jp/seamless/elev/terrainRGB/land/{z}/{y}/{x}.png"],
+        attribution: '<a href="https://tiles.gsj.jp/tiles/elev/tiles.html" target="_blank">産総研 シームレス標高タイル(陸域統合DEM)</a>',
+        tileSize: 256
+      });
+
+      // 産総研 シームレス標高タイルセット
+      // map.setTerrain({ 'source': 'aist-dem-terrain-rgb', 'exaggeration': 1 });
+
+      // 3次元電子国土基本図 試作データ(PMTiles)
+      map.addSource("gsi3d", {
+        type: "vector",
+        url: "pmtiles://https://shiworks.xsrv.jp/3dtiles/gsi-3dmap/prototype-data/gsi3d.pmtiles",
+        minzoom: 0,
+        maxzoom: 14,
+        attribution: '<a href="https://www.gsi.go.jp/kibanjoho/mapinfo3D.html">国土地理院 3次元電子国土基本図 試作データ</a>'
+      });
+
+      // 建築物レイヤ
+      map.addLayer({
+        "id": "building",
+        "source": "gsi3d",
+        "source-layer": "building",
+        "type": "fill-extrusion",
+        "paint": {
+          "fill-extrusion-color": "#FFBF00",
+          "fill-extrusion-opacity": 0.7,
+          "fill-extrusion-height": [
+            "-",
+            ["to-number", ["get", "repElv"]],
+            ["to-number", ["get", "grElv"]]
+          ]
+        }
+      });
+
+      // 道路中心線レイヤ
+      map.addLayer({
+        "id": "roads",
+        "source": "gsi3d",
+        "source-layer": "roads",
+        "type": "fill-extrusion",
+        "paint": {
+          "fill-extrusion-color": "#00FF00",
+          "fill-extrusion-opacity": 0.8,
+          "fill-extrusion-height": [
+            "-",
+            ["to-number", ["get", "average_z"]],
+            ["to-number", ["get", "base"]]
+          ]
+        }
+      });
+
+      // 軌道の中心線レイヤ
+      map.addLayer({
+        "id": "rails",
+        "source": "gsi3d",
+        "source-layer": "rails",
+        "type": "fill-extrusion",
+        "paint": {
+          "fill-extrusion-color": "#FF00FF",
+          "fill-extrusion-opacity": 0.8,
+          "fill-extrusion-height": [
+            "-",
+            ["to-number", ["get", "average_z"]],
+            ["to-number", ["get", "base"]]
+          ]
+        }
+      });
+
+      // Skyレイヤ
+      map.setSky({
+        "sky-color": "#199EF3",
+        "sky-horizon-blend": 0.7,
+        "horizon-color": "#f0f8ff",
+        "horizon-fog-blend": 0.8,
+        "fog-color": "#2c7fb8",
+        "fog-ground-blend": 0.9,
+        "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 1, 12, 0]
+      });
+
+    });
+  </script>
+</body>
+
+</html>

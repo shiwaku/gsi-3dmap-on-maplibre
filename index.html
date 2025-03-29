@@ -1,0 +1,190 @@
+<html>
+
+<head>
+  <title>国土地理院3次元電子国土基本図の試作データ(3D Tiles)</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src='https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.js'></script>
+  <link href='https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.css' rel='stylesheet' />
+  <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
+  <script src="https://unpkg.com/deck.gl@8.9.0/dist.min.js"></script>
+  <script src="https://unpkg.com/@loaders.gl/3d-tiles@^2.3.0/dist/dist.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="map"></div>
+  <script type="text/javascript">
+    // PMTilesプロトコルを初期化
+    const protocol = new pmtiles.Protocol();
+    maplibregl.addProtocol('pmtiles', protocol.tile);
+
+    // マップの初期化
+    const map = new maplibregl.Map({
+      container: "map",
+      style: "pale.json",
+      zoom: 4,
+      minZoom: 0,
+      maxZoom: 23,
+      pitch: 0,
+      bearing: 0,
+      maxPitch: 85,
+      center: [139.359, 35.3965],
+      hash: true,
+      attributionControl: false,
+    });
+
+    // ズーム・回転
+    map.addControl(new maplibregl.NavigationControl());
+
+    // フルスクリーンモードのオンオフ
+    map.addControl(new maplibregl.FullscreenControl());
+
+    // 現在位置表示
+    map.addControl(new maplibregl.GeolocateControl({
+      positionOptions: {
+        enableHighAccuracy: false
+      },
+      fitBoundsOptions: { maxZoom: 18 },
+      trackUserLocation: true,
+      showUserLocation: true
+    }));
+
+    // スケール表示
+    map.addControl(new maplibregl.ScaleControl({
+      maxWidth: 200,
+      unit: 'metric'
+    }));
+
+    // Attributionを折りたたみ表示
+    map.addControl(new maplibregl.AttributionControl({
+      compact: true,
+      customAttribution: '<a href="" target="_blank">国土地理院 3次元電子国土基本図 試作データ</a>'
+    }));
+
+    // 3D地形コントロール表示
+    map.addControl(
+      new maplibregl.TerrainControl({
+        source: 'aist-dem-terrain-rgb',
+        exaggeration: 1 // 標高を強調する倍率
+      })
+    );
+
+    map.on('load', () => {
+      // 産総研 シームレス標高タイルソース
+      map.addSource("aist-dem-terrain-rgb", {
+        type: 'raster-dem',
+        tiles: ["https://gbank.gsj.jp/seamless/elev/terrainRGB/land/{z}/{y}/{x}.png"],
+        attribution: '<a href="https://tiles.gsj.jp/tiles/elev/tiles.html" target="_blank">産総研 シームレス標高タイル(陸域統合DEM)</a>',
+        tileSize: 256
+      });
+
+      // 産総研 シームレス標高タイルセット
+      map.setTerrain({ 'source': 'aist-dem-terrain-rgb', 'exaggeration': 1 });
+
+      // MapboxOverlayを使ったインターリーブ
+      const overlay = new deck.MapboxOverlay({
+        interleaved: true,
+        layers: [
+          // 建築物
+          new deck.Tile3DLayer({
+            id: 'BldA3d',
+            data: 'https://shiworks.xsrv.jp/3dtiles/gsi-3dmap/prototype-data/building/tileset.json',
+            opacity: 0.7,
+            onTileLoad: tileHeader => {
+              const content = tileHeader.content;
+              if (content && content.gltf) {
+                if (content.gltf.materials) {
+                  content.gltf.materials.forEach(material => {
+                    if (material.pbrMetallicRoughness) {
+                      material.pbrMetallicRoughness.baseColorFactor = [1, 191 / 255, 0, 1];
+                    } else {
+                      material.baseColorFactor = [1, 191 / 255, 0, 1];
+                    }
+                  });
+                } else {
+                  console.warn('glTF の materials が見つかりません。');
+                }
+              } else {
+                console.warn('glTF プロパティが見つかりません。');
+              }
+            }
+          }),
+          // 道路中心線
+          new deck.Tile3DLayer({
+            id: 'RdCL3d',
+            data: 'https://shiworks.xsrv.jp/3dtiles/gsi-3dmap/prototype-data/roads/tileset.json',
+            opacity: 0.8,
+            onTileLoad: tileHeader => {
+              const content = tileHeader.content;
+              if (content && content.gltf) {
+                if (content.gltf.materials) {
+                  content.gltf.materials.forEach(material => {
+                    if (material.pbrMetallicRoughness) {
+                      material.pbrMetallicRoughness.baseColorFactor = [0, 1, 0, 1];
+                    } else {
+                      material.baseColorFactor = [0, 1, 0, 1];
+                    }
+                  });
+                } else {
+                  console.warn('glTF の materials が見つかりません。');
+                }
+              } else {
+                console.warn('glTF プロパティが見つかりません。');
+              }
+            }
+          }),
+          // 軌道の中心線
+          new deck.Tile3DLayer({
+            id: 'RailTrCL3d',
+            data: 'https://shiworks.xsrv.jp/3dtiles/gsi-3dmap/prototype-data/rails/tileset.json',
+            opacity: 0.8,
+            onTileLoad: tileHeader => {
+              const content = tileHeader.content;
+              if (content && content.gltf) {
+                if (content.gltf.materials) {
+                  content.gltf.materials.forEach(material => {
+                    if (material.pbrMetallicRoughness) {
+                      material.pbrMetallicRoughness.baseColorFactor = [1, 0, 1, 1];
+                    } else {
+                      material.baseColorFactor = [1, 0, 1, 1];
+                    }
+                  });
+                } else {
+                  console.warn('glTF の materials が見つかりません。');
+                }
+              } else {
+                console.warn('glTF プロパティが見つかりません。');
+              }
+            }
+          })
+        ]
+      });
+
+      map.addControl(overlay);
+
+      // Skyレイヤ
+      map.setSky({
+        "sky-color": "#199EF3",
+        "sky-horizon-blend": 0.7,
+        "horizon-color": "#f0f8ff",
+        "horizon-fog-blend": 0.8,
+        "fog-color": "#2c7fb8",
+        "fog-ground-blend": 0.9,
+        "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 1, 12, 0]
+      });
+
+    });
+  </script>
+</body>
+
+</html>

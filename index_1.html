@@ -98,16 +98,16 @@
           new deck.Tile3DLayer({
             id: 'BldA3d',
             data: 'https://shiworks.xsrv.jp/3dtiles/gsi-3dmap/prototype-data/building/tileset.json',
-            opacity: 1,
+            opacity: 0.8,
             onTileLoad: tileHeader => {
               const content = tileHeader.content;
               if (content && content.gltf) {
                 if (content.gltf.materials) {
                   content.gltf.materials.forEach(material => {
                     if (material.pbrMetallicRoughness) {
-                      material.pbrMetallicRoughness.baseColorFactor = [1, 191 / 255, 0, 1];
+                      material.pbrMetallicRoughness.baseColorFactor = [1, 0.13, 0.03, 1];
                     } else {
-                      material.baseColorFactor = [1, 191 / 255, 0, 1];
+                      material.baseColorFactor = [1, 0.13, 0.03, 1];
                     }
                   });
                 } else {

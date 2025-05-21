@@ -83,7 +83,7 @@
       map.addSource("aist-dem-terrain-rgb", {
         type: 'raster-dem',
         tiles: ["https://gbank.gsj.jp/seamless/elev/terrainRGB/land/{z}/{y}/{x}.png"],
-        attribution: '<a href="https://tiles.gsj.jp/tiles/elev/tiles.html" target="_blank">産総研 シームレス標高タイル(陸域統合DEM)</a>',
+        attribution: '<a href="https://tiles.gsj.jp/tiles/elev/tiles.html" target="_blank">産業技術総合研究所 シームレス標高タイル(陸域統合DEM)</a>',
         tileSize: 256
       });
 
@@ -98,7 +98,7 @@
           new deck.Tile3DLayer({
             id: 'BldA3d',
             data: 'https://shiworks.xsrv.jp/3dtiles/gsi-3dmap/prototype-data/building/tileset.json',
-            opacity: 0.8,
+            opacity: 0.7,
             onTileLoad: tileHeader => {
               const content = tileHeader.content;
               if (content && content.gltf) {
@@ -122,14 +122,15 @@
           new deck.Tile3DLayer({
             id: 'RdCL3d',
             data: 'https://shiworks.xsrv.jp/3dtiles/gsi-3dmap/prototype-data/roads/tileset.json',
-            opacity: 0.8,
+            opacity: 0.7,
             onTileLoad: tileHeader => {
               const content = tileHeader.content;
               if (content && content.gltf) {
                 if (content.gltf.materials) {
                   content.gltf.materials.forEach(material => {
                     if (material.pbrMetallicRoughness) {
-                      material.pbrMetallicRoughness.baseColorFactor = [0, 1, 0, 1];
+                      // material.pbrMetallicRoughness.baseColorFactor = [0, 1, 0, 1];
+                      material.pbrMetallicRoughness.baseColorFactor = [0, 0.796, 0, 1];
                     } else {
                       material.baseColorFactor = [0, 1, 0, 1];
                     }
@@ -146,13 +147,14 @@
           new deck.Tile3DLayer({
             id: 'RailTrCL3d',
             data: 'https://shiworks.xsrv.jp/3dtiles/gsi-3dmap/prototype-data/rails/tileset.json',
-            opacity: 0.8,
+            opacity: 0.7,
             onTileLoad: tileHeader => {
               const content = tileHeader.content;
               if (content && content.gltf) {
                 if (content.gltf.materials) {
                   content.gltf.materials.forEach(material => {
                     if (material.pbrMetallicRoughness) {
+                      // material.pbrMetallicRoughness.baseColorFactor = [1, 0, 1, 1];
                       material.pbrMetallicRoughness.baseColorFactor = [1, 0, 1, 1];
                     } else {
                       material.baseColorFactor = [1, 0, 1, 1];
